@@ -6,11 +6,37 @@ import plotly.figure_factory as ff
 import seaborn as sns
 import streamlit as st
 
-# disable vegalite warning
-st.set_option('deprecation.showPyplotGlobalUse', False)
-
 # Usage:
 # streamlit run app.py
+
+# # disable vegalite warning
+# st.set_option('deprecation.showPyplotGlobalUse', False)
+# Make page content wider
+st.set_page_config(layout='wide')
+
+# Allow long selection columns to scroll
+st.markdown(
+    '''
+      <style>
+          [data-testid="column"] > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div {
+          overflow: auto;
+          max-height: 90vh;
+        }
+      </style>
+    ''',
+    unsafe_allow_html=True)
+
+# Hide the streamlit backend features in serve
+st.markdown(
+    '''
+      <style>
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+      </style>
+    ''',
+    unsafe_allow_html=True)
+
 
 # Set up paths
 input_path = 'inputs/'
@@ -24,54 +50,59 @@ company_info = pd.read_csv(company_info_path)
 company_themes = pd.read_csv(company_themes_path)
 monthly_returns = pd.read_csv(monthly_returns_path)
 
-# Make page content wider
-st.set_page_config(layout='wide')
-
 # Set the title
 st.title('ESG Dashboard')
 st.markdown('''Nathan Alakija, Nicole ElChaar, Mason Otley, Xiaozhe Zhang''')
 
 # Use three main tabs: Description, Relationship Model, and Predictive Model
-list_tabs = ['Description', 'Relationship Model', 'Predictive Model', 'Time Series EXAMPLE']
-description_tab, relationship_tab, predictive_tab, time_series_tab = \
-    st.tabs([s.center(25, '\u2001') for s in list_tabs])
+tab_list = ['Description', 'Report', 'Relationship Model', 'Predictive Model']
+description_tab, report_tab, relationship_tab, predictive_tab = \
+    st.tabs([s.center(25, '\u2001') for s in tab_list])
+    # st.tabs(tab_list)
 
 # Description page
 with description_tab:
   st.header('Description')
   st.markdown('''
   TODO: This page will describe the relationship between ESG scores and stock returns.
+  
+  The Report, Relationship Model, Predictive Model...
   ''')
 
-  # Set up table of contents and report
-  toc = st.expander('Table of Contents')
-  with toc:
-    st.markdown('''
-    - [Introduction](#introduction)
-    - [Data](#data)
-    - [Methodology](#methodology)
-    - [Results](#results)
-    - [Conclusion](#conclusion)
-    ''')
-
+  st.header('Usage')
 
   st.markdown('''
-  ### Introduction
-
-
-  ### Data
-
-
-  ### Methodology
-
-
-  ### Results
-
-
-  ### Conclusion
-
-
+  Maybe replace this tab with readme.md?
   ''')
+
+with report_tab:
+  st.header('Report')
+
+  # Load the report into markdown format
+  with open('report.md', 'r') as f:
+    report = f.read()
+
+  # Add two header levels to the report
+  report = report.replace('# ', '## ')
+
+  # Expect ## to be max header found in report, add TOC
+  headers = [h.replace('### ', '') for h in report.split('\n') if h.startswith('### ')]
+  toc = st.expander('Table of Contents')
+  with toc:
+    for h in headers:
+      st.markdown(f'- [{h}](#{h.lower().replace(" ", "-")})')
+
+  # toc = st.expander('Table of Contents')
+  # with toc:
+  #   st.markdown('''
+  #   - [Introduction](#introduction)
+  #   - [Data](#data)
+  #   - [Methodology](#methodology)
+  #   - [Results](#results)
+  #   - [Conclusion](#conclusion)
+  #   ''')
+
+  st.markdown(report)
 
 # Relationship Model page
 with relationship_tab:
@@ -85,7 +116,6 @@ with relationship_tab:
 
   # Join the company info and returns
   company_returns = monthly_returns.merge(company_info, on='CIK')
-  # print(company_returns)
 
   # Get user input
   with select_col:
@@ -158,125 +188,22 @@ with predictive_tab:
   # Create columns
   select_col, display_col, desc_col = st.columns([1, 3, 1])
 
-  # Join the company info and returns
-  company_returns = monthly_returns.merge(company_info, on='CIK')
-  # print(company_returns)
-
-  # Get user input
-  with select_col:
-    # Select model to display
-    st.subheader('Model')
-    option_list = ['Model 1', 'Model 2', 'Model 3']
-    model_checkbox_dict = {option: st.checkbox(f"{option}", value=True) for option in option_list}
-    selected_models = [option for option, selected in model_checkbox_dict.items() if selected]
-
-    # Choose range of ESG score to use
-    # Find the minimum of all selected and maximum of all selected models
-    min_esg = min([company_info[f'esg{model.split()[1]}'].min() for model in selected_models])
-    max_esg = max([company_info[f'esg{model.split()[1]}'].max() for model in selected_models])
-    # Create a slider
-    st.subheader('ESG Range')
-    esg_range = st.slider('ESG Score', min_esg, max_esg, (min_esg, max_esg))
-    print(esg_range)
-
-    # Filter the company info by the selected ESG score range
-    company_returns_filtered = company_returns[
-        (company_returns['esg1'] >= esg_range[0]) & (company_returns['esg1'] <= esg_range[1])]
-
-  # Display the graph
-  with display_col:
-    # X axis as ESG score
-    # Y axis as stock return
-    # Color as model
-    # Size as number of companies
-    # Heatmap
-    st.header('ESG Score vs. Stock Return')
-    if not selected_models:
-      st.markdown('Select models to see their results.')
-
-    # # Create and display the graph with Matplotlib
-    # fig, ax = plt.subplots()
-    # for model in selected_models:
-    #   ax.scatter(data=company_returns, x='esg1', y=f'pred_ret{model.split()[1]}')
-    # ax.set_xlabel('ESG Score')
-    # ax.set_ylabel('Stock Return')
-    # ax.legend(selected_models)
-    # st.pyplot(fig)
-
-    # # Create and display the graph with Seaborn
-    # fig, ax = plt.subplots()
-    # for model in selected_models:
-    #   sns.regplot(data=company_returns, x='esg1', y=f'pred_ret{model.split()[1]}',
-    #               scatter_kws={'alpha': 0.2})
-    # ax.set_xlabel('ESG Score')
-    # ax.set_ylabel('Stock Return')
-    # ax.legend(selected_models)
-    # st.pyplot(fig)
-    
-    # # Create and display the graph with Plotly Figure Factory
-    # fig = ff.create_2d_density(x=company_returns['esg1'], y=company_returns['pred_ret1'])
-    # # add axis labels
-    # fig.update_layout(
-    #     xaxis_title='ESG Score',
-    #     yaxis_title='Stock Return',
-    #     # title='ESG Score vs. Stock Return Density Plot',
-    # )
-    # st.plotly_chart(fig)
-
-    # Create and display the graph with Plotly Express
-    # Create a plot and regression line for each model
-    # for model in selected_models:
-    alpha = 0.3
-    color_dict = {
-        'ret': f'rgba(180, 180, 180, {alpha})',
-        'pred_ret1': f'rgba(180, 0, 0, {alpha})',
-        'pred_ret2': f'rgba(0, 180, 0, {alpha})',
-        'pred_ret3': f'rgba(0, 0, 180, {alpha})'}
-    fig = px.scatter(
-        company_returns_filtered,
-        x='esg1',
-        y=['ret'] + [f'pred_ret{model.split()[1]}' for model in selected_models],
-        trendline='ols',
-        color_discrete_map=color_dict)
-    # Add axis labels
-    fig.update_layout(
-        xaxis_title='ESG Score',
-        yaxis_title='Stock Return',
-        # title='ESG Score vs. Stock Return',
-    )
-    st.plotly_chart(fig)
-
-  with desc_col:
-    st.header('Description')
-    st.markdown('''
-    This graph shows the relationship between ESG score and stock return. Each model is represented by a different color.
-    ''')
-
-    with st.container():
-      st.subheader('Model 1')
-      st.markdown('''TODO: Describe model 1''')
-    with st.container():
-      st.subheader('Model 2')
-      st.markdown('''TODO: Describe model 2''')
-    with st.container():
-      st.subheader('Model 3')
-      st.markdown('''TODO: Describe model 3''')
-
-# Time Series EXAMPLE
-with time_series_tab:
-  st.header('Time Series EXAMPLE')
-  st.markdown('''This is an example of a time series plot. It shows the monthly returns of the selected companies.''')
-
-  # Create columns
-  select_col, display_col, desc_col = st.columns([1, 3, 1])
-  
   # Get user input
   with select_col:
     st.subheader('Select Companies')
-    toggle_select_all = st.empty()
-    company_list = zip(company_info['company_name'].tolist(), company_info['CIK'].tolist())
-    company_checkbox_dict = {cik: st.checkbox(f"{name}") for name, cik in company_list}
-    selected_companies = [cik for cik, selected in company_checkbox_dict.items() if selected]
+    # Separate div for scrolling
+    scroll_div = st.container()
+    with scroll_div:
+      # Add checkbox to select all
+      select_all = st.checkbox('Select All', value=True)
+
+      # Create checkbox for each company
+      company_list = zip(
+          company_info['company_name'].tolist(), company_info['CIK'].tolist())
+      company_checkbox_dict = {
+          cik: st.checkbox(f"{name}", value=select_all) for name, cik in company_list}
+      selected_companies = [
+          cik for cik, selected in company_checkbox_dict.items() if selected]
 
   # Display the graph
   with display_col:
@@ -291,39 +218,9 @@ with time_series_tab:
     st.subheader('Description')
     st.divider()
     st.subheader('Interpretation')
-
-# # Sidebar
-# with st.sidebar:
-#     st.header('Select Companies')
-#     company_list = zip(company_info['company_name'].tolist(), company_info['CIK'].tolist())
-#     company_checkbox_dict = {cik: st.checkbox(f"{name}") for name, cik in company_list}
-#     selected_companies = [cik for cik, selected in company_checkbox_dict.items() if selected]
-
-# # Set up the main page
-# st.title('ESG Dashboard')
-
-# Display the list of companies as options in the sidebar (multiselect)
-# st.sidebar.header('Select Companies')
-
-# state = st.sidebar.selectbox('Select State', company_info['state'].unique())
-
-# # If button is clicked, select all or none
-# if st.sidebar.button('**Select all**', key='select_all'):
-#     selected_companies = {cik: True for cik in company_info['CIK'].tolist()}
-# elif st.sidebar.button('**Select none**', key='select_none'):
-#     selected_companies = {cik: False for cik in company_info['CIK'].tolist()}
-
-
-# Add a checkbox for each company
-# company_list = zip(company_info['company_name'].tolist(), company_info['CIK'].tolist())
-# company_checkbox_dict = {cik: st.sidebar.checkbox(f"{name}") for name, cik in company_list}
-# selected_companies = [cik for cik, selected in company_checkbox_dict.items() if selected]
-
-
-
-# Based on the selected companies, group by CIK, then plot date vs. returns
-# # Show line plot whether any are selected or not
-# st.header('Monthly Returns')
-# company_returns = monthly_returns[monthly_returns['CIK'].isin(selected_companies)].merge(company_info, on='CIK')
-
-# st.line_chart(company_returns.groupby(['date', 'company_name'])['ret'].sum().unstack())
+  
+  # Show main descriptions under the graph
+  st.subheader('Description')
+  st.markdown('''
+  TODO: The predictive model...
+  ''')
