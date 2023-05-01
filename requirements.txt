@@ -3,3 +3,4 @@ pandas==1.5.3
 plotly==5.14.1
 seaborn==0.12.2
 streamlit==1.21.0
+statsmodels==0.13.5

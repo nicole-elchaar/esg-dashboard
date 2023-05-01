@@ -9,8 +9,6 @@ import streamlit as st
 # Usage:
 # streamlit run app.py
 
-# # disable vegalite warning
-# st.set_option('deprecation.showPyplotGlobalUse', False)
 # Make page content wider
 st.set_page_config(layout='wide')
 
