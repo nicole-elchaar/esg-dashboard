@@ -48,8 +48,9 @@ st.title('ESG x Market Performance :earth_americas:')
 st.markdown('''Nathan Alakija, Nicole ElChaar, Mason Otley, Xiaozhe Zhang''')
 
 # Use three main tabs: Description, Relationship Model, and Predictive Model
-tab_list = ['Description', 'Report', 'Relationship Model', 'Predictive Model', 'ESG Correlations']
-description_tab, report_tab, relationship_tab, predictive_tab, correlation_tab = \
+tab_list = ['Description','Report','ESG Score Details','Relationship Model',
+            'Predictive Model']
+description_tab,report_tab,correlation_tab,relationship_tab,predictive_tab = \
     st.tabs(tab_list)
     # st.tabs([s.center(25, '\u2001') for s in tab_list])
 
@@ -69,17 +70,19 @@ final_df = final_df[final_df['Monthly Return'] > bottom_5]
 # Set up list of financial, ESG, and company info columns
 esg_cols = ['Bloomberg ESG Score', 'Bloomberg Environmental Pillar',
             'Bloomberg Governance Pillar', 'Bloomberg Social Pillar',
-            'S&P Global ESG Rank', 'S&P Global Governance & Economic Dimension Rank',
-            'S&P Global Environmental Dimension Rank', 'S&P Global Social Dimension Rank',
+            'S&P Global ESG Rank',
+            'S&P Global Governance & Economic Dimension Rank',
+            'S&P Global Environmental Dimension Rank',
+            'S&P Global Social Dimension Rank',
             'Yahoo Finance ESG Score', 'Yahoo Finance Environmental Score',
             'Yahoo Finance Social Score', 'Yahoo Finance Governance Score']
 fin_cols = ['Monthly Return', 'Price', 'Credit Risk Indicator', 'Beta', 'Alpha',
-            'Issuer Default Risk', '30 Day Volatility', 'P/E Ratio', 'Market Cap',
-            'Historical Market Cap', 'EPS']
+            'Issuer Default Risk', '30 Day Volatility', 'P/E Ratio',
+            'Market Cap', 'Historical Market Cap', 'EPS']
 company_cols = ['Ticker', 'GICS Sector', 'GICS Industry', 'GICS Industry Group',
                 'GICS Sub-Industry']
 other_cols = ['Date', 'Month', 'Year']
-# pred_cols = ['Monthly Return', 'Model 1 Prediction', 'Model 2 Prediction', ...] # TODO
+# pred_cols = ['Monthly Return', 'Model 1 Prediction', ...]  # TODO
 
 # Description page
 with description_tab:
@@ -106,7 +109,8 @@ with report_tab:
     report = f.read()
 
   # Expect ## to be max header found in report, add TOC
-  headers = [h.replace('## ', '') for h in report.split('\n') if h.startswith('## ')]
+  headers = [
+      h.replace('## ', '') for h in report.split('\n') if h.startswith('## ')]
   toc = st.expander('Table of Contents')
   with toc:
     for h in headers:
@@ -119,9 +123,9 @@ with report_tab:
 # Relationship Model page
 with relationship_tab:
   st.header('Relationship Model')
-  st.markdown('''
-  TODO: This page will show the relationship model.
-  ''')
+  # st.markdown('''
+  # TODO: This page will show the relationship model.
+  # ''')
 
   # Create columns
   select_col, display_col, desc_col = st.columns([1, 4, 1])
@@ -131,7 +135,9 @@ with relationship_tab:
   with select_col:
     # Select whether to show at the company level or industry level
     st.subheader('Aggregation Level')
-    agg_level = st.selectbox('Group By', ['Ticker', 'GICS Sector', 'GICS Industry','GICS Industry Group','GICS Sub-Industry']) # GICS Sector Name,GICS Industry Name,GICS Industry Group Name,GICS Sub-Industry Name
+    agg_level = st.selectbox('Group By',
+        ['Ticker','GICS Sector','GICS Industry','GICS Industry Group',
+         'GICS Sub-Industry'])
 
     # Select which ESG score for X axis
     st.subheader('ESG Score')
@@ -139,26 +145,32 @@ with relationship_tab:
 
     # Select which dates to use for analysis
     st.subheader('Date Range')
-    start_date = pd.Timestamp(st.date_input('Start Date', value=final_df['Date'].min()))
-    end_date = pd.Timestamp(st.date_input('End Date', value=final_df['Date'].max()))
+    start_date = pd.Timestamp(st.date_input(
+        'Start Date', value=final_df['Date'].min()))
+    end_date = pd.Timestamp(st.date_input(
+        'End Date', value=final_df['Date'].max()))
 
     # Filter to show only groupbys in at least 12 months
     rel_df = final_df[final_df[agg_level].isin(
         final_df.groupby(agg_level).filter(lambda x: len(x) >= 12)[agg_level])]
     
     # Filter to show only dates in the selected range
-    rel_df = rel_df[(rel_df['Date'] >= start_date) & (rel_df['Date'] <= end_date)]
+    rel_df = rel_df[
+        (rel_df['Date'] >= start_date) & (rel_df['Date'] <= end_date)]
     
     # Group by agg_level selector and average monthly return by market cap
-    rel_df['Average Monthly Return'] = rel_df['Monthly Return'] * rel_df['Market Cap']
     rel_df['Average Monthly Return'] = \
-        rel_df.groupby([agg_level, 'Date'])['Average Monthly Return'].transform('sum') / \
+        rel_df['Monthly Return'] * rel_df['Market Cap']
+    rel_df['Average Monthly Return'] = \
+        rel_df.groupby(
+            [agg_level, 'Date'])['Average Monthly Return'].transform('sum') / \
         rel_df.groupby([agg_level, 'Date'])['Market Cap'].transform('sum')
     
     # Create average market-weighted score for each agg_level
     rel_df[f'Average {esg_x}'] = rel_df[esg_x] * rel_df['Market Cap']
     rel_df[f'Average {esg_x}'] = \
-        rel_df.groupby(['GICS Sector', 'Date'])[f'Average {esg_x}'].transform('sum') / \
+        rel_df.groupby(
+            ['GICS Sector', 'Date'])[f'Average {esg_x}'].transform('sum') / \
         rel_df.groupby(['GICS Sector', 'Date'])['Market Cap'].transform('sum')
     
     # Average both across all dates
@@ -168,11 +180,17 @@ with relationship_tab:
     
     # Select final sample
     if agg_level == 'GICS Sector':
-      rel_df = rel_df[[f'Average {esg_x}', 'Average Monthly Return', 'GICS Sector']].drop_duplicates()
+      rel_df = rel_df[[
+          f'Average {esg_x}','Average Monthly Return','GICS Sector']] \
+          .drop_duplicates()
     else:
       # Join back Sector and select
-      rel_df = rel_df.merge(final_df[['GICS Sector', agg_level]].drop_duplicates(), on=agg_level, how='left')
-      rel_df = rel_df[[agg_level, f'Average {esg_x}', 'Average Monthly Return', 'GICS Sector']].drop_duplicates()
+      rel_df = rel_df.merge(final_df[[
+          'GICS Sector',agg_level]].drop_duplicates(), on=agg_level, how='left')
+      rel_df = rel_df[[
+          agg_level,
+          f'Average {esg_x}','Average Monthly Return','GICS Sector']] \
+          .drop_duplicates()
 
   with display_col:
     st.subheader(f'Average Monthly Return vs. {esg_x} by {agg_level}')
@@ -206,41 +224,30 @@ with relationship_tab:
     in the dataset.
     ''')
 
-  # Explain each ESG score
-  st.subheader('ESG Scores')
-  st.markdown('''
-  #### ESG 1
-  TODO: This will describe ESG 1.
-  ''')
-  st.markdown('''
-  #### ESG 2
-  TODO: This will describe ESG 2.
-  ''')
-  st.markdown('''
-  #### ESG 3
-  TODO: This will describe ESG 3.
-  ''')
+  # Create columns for explanations and summary stats
+  st.markdown('---')
+  exp_col, stat_col = st.columns([1, 1])
 
-  
-  # Display summary stats
-  # st.subheader('Summary Statistics')
-  # st.text(f'Number of Companies: {len(rel_df)}')
-  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].describe())
-  # st.text('Correlation')
-  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].corr())
-  # st.text('Covariance')
-  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].cov())
-  # st.text('Skewness')
-  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].skew())
-  # st.text('Kurtosis')
-  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].kurtosis())
+  with exp_col:
+    # Explain each ESG score
+    st.subheader('Score Descriptions')
+    st.markdown('''
+    
+    ''')
+
+  with stat_col:
+    # Show summary stats
+    st.subheader('Summary Statistics')
+    
+    # Show summary stats
+    st.write(rel_df.describe())
 
 # Predictive Model page
 with predictive_tab:
   st.header('Predictive Model')
-  st.markdown('''
-  TODO: This page will show the predictive model.
-  ''')
+  # st.markdown('''
+  # TODO: This page will show the predictive model.
+  # ''')
 
   # Create columns
   select_col, display_col, desc_col = st.columns([1, 3, 1])
@@ -273,16 +280,20 @@ with predictive_tab:
     pred_df = pred_df.sort_values(by='Date')
 
     # Create market weighted return by date, grouped by industry
-    pred_df['Monthly Return'] = pred_df['Monthly Return'] * pred_df['Market Cap']
     pred_df['Monthly Return'] = \
-        pred_df.groupby(['GICS Sector', 'Date'])['Monthly Return'].transform('sum') / \
+        pred_df['Monthly Return'] * pred_df['Market Cap']
+    pred_df['Monthly Return'] = \
+        pred_df.groupby([
+            'GICS Sector', 'Date'])['Monthly Return'].transform('sum') / \
         pred_df.groupby(['GICS Sector', 'Date'])['Market Cap'].transform('sum')
     
-    pred_df = pred_df[['Date', 'Monthly Return', 'GICS Sector']].drop_duplicates()
+    pred_df = pred_df[[
+        'Date', 'Monthly Return', 'GICS Sector']].drop_duplicates()
 
     # Smooth the data
     if smoothing:
-      pred_df['Monthly Return'] = pred_df['Monthly Return'].rolling(smoothing).mean()
+      pred_df['Monthly Return'] = \
+          pred_df['Monthly Return'].rolling(smoothing).mean()
 
     # TODO simulating predictive model while waiting
     pred_df['Logistic Regression Prediction'] = pred_df['Monthly Return'] * 0.5
@@ -319,7 +330,8 @@ with predictive_tab:
     for each industry.
     ''')
 
-  # Create two columns under the graph, one to explain each model and the other to show summary stats of predictive vs actual returns
+  # Create cols to explain models and show summary stats
+  st.markdown('---')
   exp_col, stats_col = st.columns([1, 1])
   
   # Show main descriptions under the graph
@@ -332,13 +344,13 @@ with predictive_tab:
   # Show summary stats under the graph
   with stats_col:
     st.subheader('Summary Statistics')
-    
-    # Describe the predictive cols vs actual cols
-    st.text('Predictive Returns')
+
+    # Show summary stats
+    st.write(pred_df.describe())
   
-  # 
+  # Show ESG score details
   with correlation_tab:
-    st.header('ESG Correlations')
+    st.header('ESG Score Details')
     st.markdown('''
     This page shows the relationship between each set of ESG scores. Because
     the scores are calculated by different providers, the scores are not
@@ -376,15 +388,17 @@ with predictive_tab:
       st.plotly_chart(corr_fig, use_container_width=True)
 
     # Create interactive distribution plot
-    # Pivot final_df to long
     dist_df = final_df.melt(
         id_vars=['Date', 'Ticker'],
         value_vars=esg_cols,
         var_name='ESG',
         value_name='Score')
-    # Set the Source to where the score came from: either Bloomberg, S&P Global, or Yahoo Finance
+    # Set the score Source
     dist_df['Source'] = dist_df['ESG'].apply(
-        lambda x: 'Bloomberg' if 'Bloomberg' in x else 'S&P Global' if 'S&P Global' in x else 'Yahoo Finance' if 'Yahoo Finance' in x else 'Unknown')
+        lambda x: 'Bloomberg' if 'Bloomberg' in x \
+            else 'S&P Global' if 'S&P Global' in x \
+            else 'Yahoo Finance' if 'Yahoo Finance' in x \
+            else 'Unknown')
     dist_df = dist_df[dist_df['Source'] != 'Unknown']
     dist_df = dist_df.sort_values(by=['Source', 'ESG'])
 
@@ -403,11 +417,13 @@ with predictive_tab:
           color='Source',
           facet_col='ESG',
           facet_col_wrap=4,
-          facet_row_spacing=0.16, # default is 0.07
-          facet_col_spacing=0.08, # default is 0.03
+          facet_row_spacing=0.16,
+          facet_col_spacing=0.08,
       )
-      dist_fig.for_each_yaxis(lambda y: y.update(showticklabels=True,matches=None))
-      dist_fig.for_each_xaxis(lambda x: x.update(showticklabels=True,matches=None))
+      dist_fig.for_each_yaxis(
+          lambda y: y.update(showticklabels=True,matches=None))
+      dist_fig.for_each_xaxis(
+          lambda x: x.update(showticklabels=True,matches=None))
       for annotation in dist_fig.layout.annotations:
         annotation.text = annotation.text.split('=')[1]
         # Remove Bloomberg, S&P Global, and Yahoo Finance from the facet titles
