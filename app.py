@@ -3,14 +3,19 @@ import os
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
+import plotly.graph_objects as go
 import seaborn as sns
 import streamlit as st
+from plotly.subplots import make_subplots
 
 # Usage:
 # streamlit run app.py
 
 # Make page content wider
-st.set_page_config(layout='wide')
+st.set_page_config(
+    page_title="ESG x Market Performance",
+    page_icon=":earth_americas:",
+    layout="wide",)
 
 # Allow long selection columns to scroll
 st.markdown(
@@ -39,12 +44,12 @@ st.markdown(
 input_path = 'inputs/'
 
 # Set the title
-st.title('ESG Dashboard')
+st.title('ESG x Market Performance :earth_americas:')
 st.markdown('''Nathan Alakija, Nicole ElChaar, Mason Otley, Xiaozhe Zhang''')
 
 # Use three main tabs: Description, Relationship Model, and Predictive Model
-tab_list = ['Description', 'Report', 'Relationship Model', 'Predictive Model']
-description_tab, report_tab, relationship_tab, predictive_tab = \
+tab_list = ['Description', 'Report', 'Relationship Model', 'Predictive Model', 'ESG Correlations']
+description_tab, report_tab, relationship_tab, predictive_tab, correlation_tab = \
     st.tabs(tab_list)
     # st.tabs([s.center(25, '\u2001') for s in tab_list])
 
@@ -80,9 +85,11 @@ other_cols = ['Date', 'Month', 'Year']
 with description_tab:
   st.header('Description')
   st.markdown('''
-  TODO: This page will describe the relationship between ESG scores and stock returns.
+  In this dashboard, we compare ESG scores from Bloomberg, S&P Global, and
+  Yahoo Finance with market performance.
   
-  The Report, Relationship Model, Predictive Model...
+  We also compare the ESG scores to each other to see if they are correlated.
+  The title of 
   ''')
 
   st.header('Usage')
@@ -171,19 +178,20 @@ with relationship_tab:
     st.subheader(f'Average Monthly Return vs. {esg_x} by {agg_level}')
 
     # Scatterplot
-    fig = px.scatter(
-        rel_df,
-        x=f'Average {esg_x}',
-        y='Average Monthly Return',
-        trendline='ols',
-        trendline_scope='overall', # TODO: show only one trendline for all
-        trendline_color_override='black',
-        hover_data=[agg_level],
-        color='GICS Sector',)
-    fig.update_traces(marker=dict(opacity=0.4))
-    fig.update_layout(scattermode='group')
+    with st.spinner('Updating plot...'):
+      dist_fig = px.scatter(
+          rel_df,
+          x=f'Average {esg_x}',
+          y='Average Monthly Return',
+          trendline='ols',
+          trendline_scope='overall', # TODO: show only one trendline for all
+          trendline_color_override='black',
+          hover_data=[agg_level],
+          color='GICS Sector',)
+      dist_fig.update_traces(marker=dict(opacity=0.4))
+      dist_fig.update_layout(scattermode='group')
 
-    st.plotly_chart(fig, use_container_width=True, height=600)
+      st.plotly_chart(dist_fig, use_container_width=True, height=600)
 
   # Show desription below graph for wider columns
   with desc_col:
@@ -284,19 +292,20 @@ with predictive_tab:
         id_vars=['Date', 'GICS Sector'],
         value_vars=['Monthly Return', 'Logistic Regression Prediction'],
         var_name='Return Type',
-        value_name='Monthly Return')
+        value_name='Return')
 
     # Line chart grouped by ticker
-    fig = px.line(
-        pred_df,
-        x='Date',
-        y='Monthly Return',
-        color='Return Type',
-        # line_dash='Return Type',
-        hover_data='GICS Sector')
-    fig.update_traces(opacity=0.8)
-    
-    st.plotly_chart(fig, use_container_width=True, height=600)
+    with st.spinner('Updating plot...'):
+      dist_fig = px.line(
+          pred_df,
+          x='Date',
+          y='Return',
+          color='Return Type',
+          # line_dash='Return Type',
+          hover_data='GICS Sector')
+      dist_fig.update_traces(opacity=0.8)
+      
+      st.plotly_chart(dist_fig, use_container_width=True, height=600)
    
   # Display the description
   with desc_col:
@@ -309,9 +318,102 @@ with predictive_tab:
     aggregated by GICS Industry and displayed against the actual monthly returns
     for each industry.
     ''')
+
+  # Create two columns under the graph, one to explain each model and the other to show summary stats of predictive vs actual returns
+  exp_col, stats_col = st.columns([1, 1])
   
   # Show main descriptions under the graph
-  st.subheader('Model Descriptions')
-  st.markdown('''
-  TODO: This model...
-  ''')
+  with exp_col:
+    st.subheader('Model Descriptions')
+    st.markdown('''
+    TODO: This model...
+    ''')
+
+  # Show summary stats under the graph
+  with stats_col:
+    st.subheader('Summary Statistics')
+    
+    # Describe the predictive cols vs actual cols
+    st.text('Predictive Returns')
+  
+  # 
+  with correlation_tab:
+    st.header('ESG Correlations')
+    st.markdown('''
+    This page shows the relationship between each set of ESG scores. Because
+    the scores are calculated by different providers, the scores are not
+    directly comparable. However, we should still see a relationship between
+    the scores as they are all measuring similar underlying factors.
+    ''')
+
+    # Create heatmap of correlations
+    st.subheader('Correlation Heatmap')
+    st.markdown('''
+    In the heatmap, we see that Bloomberg scores are most distinct from one
+    another, while S&P Global and Yahoo Finance scores are very similar to other
+    scores from the same source.  Yahoo Finance Governance and Yahoo Finance
+    Environmental scores are the most similar to one another with a correlation
+    of 0.94.
+
+    While Bloomberg scores and S&P Global scores have weak positive correlations
+    with one another, Yahoo Finance scores have a weak negative correlation with
+    both Bloomberg and S&P Global scores.  The highest cross-source correlation
+    is between Bloomberg Environmental and S&P Global Environmental scores at
+    0.47.  The lowest cross-source correlation is between Yahoo Finance
+    Environmental and Bloomberg ESG scores at -0.31.
+    ''')
+
+    with st.spinner('Updating plot...'):
+      corr_df = final_df[esg_cols].corr()
+      corr_fig = px.imshow(
+          corr_df,
+          x=corr_df.columns,
+          y=corr_df.columns,
+          color_continuous_scale='RdBu',
+          zmin=-1,
+          zmax=1)
+      corr_fig.update_layout(height=600)
+      st.plotly_chart(corr_fig, use_container_width=True)
+
+    # Create interactive distribution plot
+    # Pivot final_df to long
+    dist_df = final_df.melt(
+        id_vars=['Date', 'Ticker'],
+        value_vars=esg_cols,
+        var_name='ESG',
+        value_name='Score')
+    # Set the Source to where the score came from: either Bloomberg, S&P Global, or Yahoo Finance
+    dist_df['Source'] = dist_df['ESG'].apply(
+        lambda x: 'Bloomberg' if 'Bloomberg' in x else 'S&P Global' if 'S&P Global' in x else 'Yahoo Finance' if 'Yahoo Finance' in x else 'Unknown')
+    dist_df = dist_df[dist_df['Source'] != 'Unknown']
+    dist_df = dist_df.sort_values(by=['Source', 'ESG'])
+
+    st.subheader('Distribution of ESG Scores')
+    st.markdown('''
+    Looking at the distribution of scores, we see that Bloomberg scores are more
+    concentrated around the mean than S&P Global and Yahoo Finance scores.
+    We also see that S&P Global Scores have a fairly uniform distribution while
+    Yahoo Finance scores have bimodal distributions.
+    ''')
+
+    with st.spinner('Updating plot...'):
+      dist_fig = px.histogram(
+          dist_df,
+          x='Score',
+          color='Source',
+          facet_col='ESG',
+          facet_col_wrap=4,
+          facet_row_spacing=0.16, # default is 0.07
+          facet_col_spacing=0.08, # default is 0.03
+      )
+      dist_fig.for_each_yaxis(lambda y: y.update(showticklabels=True,matches=None))
+      dist_fig.for_each_xaxis(lambda x: x.update(showticklabels=True,matches=None))
+      for annotation in dist_fig.layout.annotations:
+        annotation.text = annotation.text.split('=')[1]
+        # Remove Bloomberg, S&P Global, and Yahoo Finance from the facet titles
+        annotation.text = annotation.text.replace('Bloomberg ', '')
+        annotation.text = annotation.text.replace('S&P Global ', '')
+        annotation.text = annotation.text.replace('Yahoo Finance ', '')
+      dist_fig.update_layout(height=800)
+
+      st.plotly_chart(dist_fig, use_container_width=True)
