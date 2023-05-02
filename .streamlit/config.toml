@@ -1,9 +1,9 @@
 [theme]
 base="light"
-primaryColor = "green"
+primaryColor = '#0563bb'
 
 # Primary accent for interactive elements
-# primaryColor = '#7792E3'
+# primaryColor = '#008080'
 
 # Background color for the main content area
 # backgroundColor = '#273346'

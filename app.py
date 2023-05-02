@@ -299,7 +299,7 @@ with predictive_tab:
     pred_df['Logistic Regression Prediction'] = pred_df['Monthly Return'] * 0.5
 
     # Pivot to long format
-    pred_df = pred_df.melt(
+    pred_df_long = pred_df.melt(
         id_vars=['Date', 'GICS Sector'],
         value_vars=['Monthly Return', 'Logistic Regression Prediction'],
         var_name='Return Type',
@@ -308,7 +308,7 @@ with predictive_tab:
     # Line chart grouped by ticker
     with st.spinner('Updating plot...'):
       dist_fig = px.line(
-          pred_df,
+          pred_df_long,
           x='Date',
           y='Return',
           color='Return Type',
