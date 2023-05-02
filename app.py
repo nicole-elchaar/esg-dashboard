@@ -158,11 +158,13 @@ with relationship_tab:
     rel_df = rel_df.groupby([agg_level]) \
         .agg({'Average Monthly Return': 'mean', f'Average {esg_x}': 'mean'}) \
         .reset_index()
-
-    # Select columns needed
+    
+    # Select final sample
     if agg_level == 'GICS Sector':
-      rel_df = rel_df[[agg_level, f'Average {esg_x}', 'Average Monthly Return']].drop_duplicates()
+      rel_df = rel_df[[f'Average {esg_x}', 'Average Monthly Return', 'GICS Sector']].drop_duplicates()
     else:
+      # Join back Sector and select
+      rel_df = rel_df.merge(final_df[['GICS Sector', agg_level]].drop_duplicates(), on=agg_level, how='left')
       rel_df = rel_df[[agg_level, f'Average {esg_x}', 'Average Monthly Return', 'GICS Sector']].drop_duplicates()
 
   with display_col:
@@ -181,26 +183,35 @@ with relationship_tab:
     fig.update_traces(marker=dict(opacity=0.4))
     fig.update_layout(scattermode='group')
 
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True, height=600)
 
   # Show desription below graph for wider columns
   with desc_col:
     st.subheader('Description')
-    st.markdown('''TODO: This column will describe the graph.''')
     st.markdown('''
-    #### ESG 1
-    TODO: This column will describe ESG 1.
+    This model displays the relationship between ESG scores and monthly returns.
+    Scores and returns are aggregated by the average market-weighted value for
+    each aggretation level, either by Ticker, GICS Industry, GICS Sub-Industry,
+    GICS Industry Group, or GICS Sector.
+
+    Dates can be filtered to any range, with the default range showing all dates
+    in the dataset.
     ''')
-    st.markdown('''
-    #### ESG 2
-    TODO: This column will describe ESG 2.
-    ''')
-    st.markdown('''
-    #### ESG 3
-    TODO: This column will describe ESG 3.
-    ''')
-    with st.container():
-      st.subheader('Interpretation')
+
+  # Explain each ESG score
+  st.subheader('ESG Scores')
+  st.markdown('''
+  #### ESG 1
+  TODO: This column will describe ESG 1.
+  ''')
+  st.markdown('''
+  #### ESG 2
+  TODO: This column will describe ESG 2.
+  ''')
+  st.markdown('''
+  #### ESG 3
+  TODO: This column will describe ESG 3.
+  ''')
 
   
   # Display summary stats
