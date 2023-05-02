@@ -194,7 +194,7 @@ with relationship_tab:
     each aggretation level, either by Ticker, GICS Industry, GICS Sub-Industry,
     GICS Industry Group, or GICS Sector.
 
-    Dates can be filtered to any range, with the default range showing all dates
+    Dates can be filtered to any range, with the default range set to all dates
     in the dataset.
     ''')
 
@@ -202,15 +202,15 @@ with relationship_tab:
   st.subheader('ESG Scores')
   st.markdown('''
   #### ESG 1
-  TODO: This column will describe ESG 1.
+  TODO: This will describe ESG 1.
   ''')
   st.markdown('''
   #### ESG 2
-  TODO: This column will describe ESG 2.
+  TODO: This will describe ESG 2.
   ''')
   st.markdown('''
   #### ESG 3
-  TODO: This column will describe ESG 3.
+  TODO: This will describe ESG 3.
   ''')
 
   
@@ -234,42 +234,84 @@ with predictive_tab:
   TODO: This page will show the predictive model.
   ''')
 
-  # # Create columns
-  # select_col, display_col, desc_col = st.columns([1, 3, 1])
+  # Create columns
+  select_col, display_col, desc_col = st.columns([1, 3, 1])
 
-  # # Get user input
-  # with select_col:
-  #   st.subheader('Select Companies')
-  #   # Separate div for scrolling
-  #   scroll_div = st.container()
-  #   with scroll_div:
-  #     # Add checkbox to select all
-  #     select_all = st.checkbox('Select All', value=True)
+  # Get user input
+  with select_col:
+    st.subheader('Select Industries')
+    # Create checkbox for each industry, removing nan
+    industries = final_df['GICS Sector'].unique()
+    industries = industries[~pd.isna(industries)]
+    selected_industry = st.selectbox(
+        'Select Industry',
+        industries)
+    
+    st.subheader('Smoothing')
+    smoothing = st.slider(
+        'Months to Smooth',
+        min_value=0,
+        max_value=12,
+        value=6,
+        step=1)
+    
+    # Filter to selected industries
+    pred_df = final_df[final_df['GICS Sector'] == selected_industry]
 
-  #     # Create checkbox for each company
-  #     company_list = zip(
-  #         company_info['company_name'].tolist(), company_info['CIK'].tolist())
-  #     company_checkbox_dict = {
-  #         cik: st.checkbox(f"{name}", value=select_all) for name, cik in company_list}
-  #     selected_companies = [
-  #         cik for cik, selected in company_checkbox_dict.items() if selected]
+  # Display the graph
+  with display_col:
+    st.header(f'Predicted Monthly Returns in {selected_industry}')
+    # Sort by date
+    pred_df = pred_df.sort_values(by='Date')
 
-  # # Display the graph
-  # with display_col:
-  #   st.header('Monthly Returns')
-  #   if not selected_companies:
-  #     st.markdown('Select companies to see their returns.')
-  #   company_returns = monthly_returns[monthly_returns['CIK'].isin(selected_companies)].merge(company_info, on='CIK')
-  #   st.line_chart(company_returns.groupby(['date', 'company_name'])['ret'].sum().unstack())
+    # Create market weighted return by date, grouped by industry
+    pred_df['Monthly Return'] = pred_df['Monthly Return'] * pred_df['Market Cap']
+    pred_df['Monthly Return'] = \
+        pred_df.groupby(['GICS Sector', 'Date'])['Monthly Return'].transform('sum') / \
+        pred_df.groupby(['GICS Sector', 'Date'])['Market Cap'].transform('sum')
+    
+    pred_df = pred_df[['Date', 'Monthly Return', 'GICS Sector']].drop_duplicates()
 
-  # # Display the description
-  # with desc_col:
-  #   st.subheader('Description')
-  #   st.divider()
-  #   st.subheader('Interpretation')
+    # Smooth the data
+    if smoothing:
+      pred_df['Monthly Return'] = pred_df['Monthly Return'].rolling(smoothing).mean()
+
+    # TODO simulating predictive model while waiting
+    pred_df['Logistic Regression Prediction'] = pred_df['Monthly Return'] * 0.5
+
+    # Pivot to long format
+    pred_df = pred_df.melt(
+        id_vars=['Date', 'GICS Sector'],
+        value_vars=['Monthly Return', 'Logistic Regression Prediction'],
+        var_name='Return Type',
+        value_name='Monthly Return')
+
+    # Line chart grouped by ticker
+    fig = px.line(
+        pred_df,
+        x='Date',
+        y='Monthly Return',
+        color='Return Type',
+        # line_dash='Return Type',
+        hover_data='GICS Sector')
+    fig.update_traces(opacity=0.8)
+    
+    st.plotly_chart(fig, use_container_width=True, height=600)
+   
+  # Display the description
+  with desc_col:
+    st.subheader('Description')
+    st.markdown('''
+    In this model, we display our predicted monthly returns for each industry
+    against the actual monthly returns. The predicted returns are calculated
+    ticker-by-ticker for each company in the S&P 500 at the end of each month,
+    using a time-series based train test split. The predicted returns are then
+    aggregated by GICS Industry and displayed against the actual monthly returns
+    for each industry.
+    ''')
   
-  # # Show main descriptions under the graph
-  # st.subheader('Description')
-  # st.markdown('''
-  # TODO: The predictive model...
-  # ''')
+  # Show main descriptions under the graph
+  st.subheader('Model Descriptions')
+  st.markdown('''
+  TODO: This model...
+  ''')
