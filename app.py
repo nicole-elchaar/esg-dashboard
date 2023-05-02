@@ -275,7 +275,7 @@ with predictive_tab:
 
   # Display the graph
   with display_col:
-    st.header(f'Predicted Monthly Returns in {selected_industry}')
+    st.subheader(f'Predicted Monthly Returns in {selected_industry}')
     # Sort by date
     pred_df = pred_df.sort_values(by='Date')
 
