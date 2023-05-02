@@ -35,20 +35,8 @@ st.markdown(
     ''',
     unsafe_allow_html=True)
 
-
 # Set up paths
 input_path = 'inputs/'
-# company_info_path = input_path + 'company_info.csv'
-# company_themes_path = input_path + 'company_themes.csv'
-# monthly_returns_path = input_path + 'monthly_returns.csv'
-
-# # Import the ESG Data
-# company_info = pd.read_csv(company_info_path)
-# company_themes = pd.read_csv(company_themes_path)
-# monthly_returns = pd.read_csv(monthly_returns_path)
-
-# Load in final dataset
-final_df = pd.read_csv(input_path + 'final_dataset.csv')
 
 # Set the title
 st.title('ESG Dashboard')
@@ -59,6 +47,34 @@ tab_list = ['Description', 'Report', 'Relationship Model', 'Predictive Model']
 description_tab, report_tab, relationship_tab, predictive_tab = \
     st.tabs(tab_list)
     # st.tabs([s.center(25, '\u2001') for s in tab_list])
+
+# Load in final dataset
+final_df = pd.read_csv(input_path + 'final_dataset.csv')
+final_df['Date'] = pd.to_datetime(final_df['Date'])
+
+# TODO Keep only first 100 rows for testing
+# final_df = final_df.iloc[:100]
+
+# Remove extreme outliers in monthly return > 99% and < 1%
+top_5 = final_df['Monthly Return'].quantile(0.99)
+bottom_5 = final_df['Monthly Return'].quantile(0.01)
+final_df = final_df[final_df['Monthly Return'] < top_5]
+final_df = final_df[final_df['Monthly Return'] > bottom_5]
+
+# Set up list of financial, ESG, and company info columns
+esg_cols = ['Bloomberg ESG Score', 'Bloomberg Environmental Pillar',
+            'Bloomberg Governance Pillar', 'Bloomberg Social Pillar',
+            'S&P Global ESG Rank', 'S&P Global Governance & Economic Dimension Rank',
+            'S&P Global Environmental Dimension Rank', 'S&P Global Social Dimension Rank',
+            'Yahoo Finance ESG Score', 'Yahoo Finance Environmental Score',
+            'Yahoo Finance Social Score', 'Yahoo Finance Governance Score']
+fin_cols = ['Monthly Return', 'Price', 'Credit Risk Indicator', 'Beta', 'Alpha',
+            'Issuer Default Risk', '30 Day Volatility', 'P/E Ratio', 'Market Cap',
+            'Historical Market Cap', 'EPS']
+company_cols = ['Ticker', 'GICS Sector', 'GICS Industry', 'GICS Industry Group',
+                'GICS Sub-Industry']
+other_cols = ['Date', 'Month', 'Year']
+# pred_cols = ['Monthly Return', 'Model 1 Prediction', 'Model 2 Prediction', ...] # TODO
 
 # Description page
 with description_tab:
@@ -101,114 +117,73 @@ with relationship_tab:
   ''')
 
   # Create columns
-  select_col, display_col, desc_col = st.columns([1, 3, 1])
-
-  # # Join the company info and returns
-  # company_returns = monthly_returns.merge(company_info, on='CIK')
+  select_col, display_col, desc_col = st.columns([1, 4, 1])
+  # select_col, display_col = st.columns([2, 5])
 
   # Get user input
   with select_col:
     # Select whether to show at the company level or industry level
     st.subheader('Aggregation Level')
-    agg_level = st.radio('Group By', ['Ticker', 'Sector'])
+    agg_level = st.selectbox('Group By', ['Ticker', 'GICS Sector', 'GICS Industry','GICS Industry Group','GICS Sub-Industry']) # GICS Sector Name,GICS Industry Name,GICS Industry Group Name,GICS Sub-Industry Name
 
     # Select which ESG score for X axis
     st.subheader('ESG Score')
-    option_list = ['ESG Score','ESG Rank','MCSI ESG Rating','BESG Score','ESG Score SYN','YFin E','YFin S','YFin G']
-    esg_x = st.radio('Select ESG Score', option_list)
+    esg_x = st.selectbox('Select ESG Score', esg_cols)
+
+    # Select which dates to use for analysis
+    st.subheader('Date Range')
+    start_date = pd.Timestamp(st.date_input('Start Date', value=final_df['Date'].min()))
+    end_date = pd.Timestamp(st.date_input('End Date', value=final_df['Date'].max()))
 
     # Filter to show only groupbys in at least 12 months
     rel_df = final_df[final_df[agg_level].isin(
         final_df.groupby(agg_level).filter(lambda x: len(x) >= 12)[agg_level])]
+    
+    # Filter to show only dates in the selected range
+    rel_df = rel_df[(rel_df['Date'] >= start_date) & (rel_df['Date'] <= end_date)]
+    
+    # Group by agg_level selector and average monthly return by market cap
+    rel_df['Average Monthly Return'] = rel_df['Monthly Return'] * rel_df['Market Cap']
+    rel_df['Average Monthly Return'] = \
+        rel_df.groupby([agg_level, 'Date'])['Average Monthly Return'].transform('sum') / \
+        rel_df.groupby([agg_level, 'Date'])['Market Cap'].transform('sum')
+    
+    # Create average market-weighted score for each agg_level
+    rel_df[f'Average {esg_x}'] = rel_df[esg_x] * rel_df['Market Cap']
+    rel_df[f'Average {esg_x}'] = \
+        rel_df.groupby(['GICS Sector', 'Date'])[f'Average {esg_x}'].transform('sum') / \
+        rel_df.groupby(['GICS Sector', 'Date'])['Market Cap'].transform('sum')
+    
+    # Average both across all dates
+    rel_df = rel_df.groupby([agg_level]) \
+        .agg({'Average Monthly Return': 'mean', f'Average {esg_x}': 'mean'}) \
+        .reset_index()
+
     # Select columns needed
-    if agg_level == 'Sector':
-      print('Sector')
-      print('esg_x', esg_x)
-      if esg_x == 'MCSI ESG Rating':
-        # TODO Aggregate returns by Sector and Rating
-        # Assign ratings to scores
-        rel_df[esg_x] = rel_df[esg_x].replace({
-            'AAA': 10,
-            'AA': 9,
-            'A': 8,
-            'BBB': 7,
-            'BB': 6,
-            'B': 5,
-            'CCC': 4,
-            'CC': 3,
-            'C': 2,
-            'D': 1,
-        })
-        # Create average market-weighted return for each sector
-        rel_df[esg_x] = rel_df[esg_x] * rel_df['Market Cap']
-        rel_df[esg_x] = \
-            rel_df.groupby(['Sector', 'Date'])[esg_x].transform('sum') / \
-            rel_df.groupby(['Sector', 'Date'])['Market Cap'].transform('sum')
-        # Transform back to ratings
-        rel_df[esg_x] = rel_df[esg_x].round().replace({
-            10: 'AAA',
-            9: 'AA',
-            8: 'A',
-            7: 'BBB',
-            6: 'BB',
-            5: 'B',
-            4: 'CCC',
-            3: 'CC',
-            2: 'C',
-            1: 'D',
-        })
-        # Rename industry return to return
-        rel_df = rel_df \
-            .drop(columns=['Average Return']) \
-            .rename(columns={'Average Sector Return': 'Average Return'})
-      else:
-        # Create average market-weighted return for each sector
-        rel_df[f'Average {esg_x}'] = rel_df[esg_x] * rel_df['Market Cap']
-        rel_df[f'Average {esg_x}'] = \
-            rel_df.groupby(['Sector', 'Date'])[f'Average {esg_x}'].transform('sum') / \
-            rel_df.groupby(['Sector', 'Date'])['Market Cap'].transform('sum')
-
-        # Rename industry return to return
-        rel_df = rel_df \
-            .drop(columns=['Average Return', esg_x]) \
-            .rename(columns={'Average Sector Return': 'Average Return', f'Average {esg_x}': esg_x})
-
-      rel_df = rel_df[[agg_level, esg_x, 'Average Return']]
+    if agg_level == 'GICS Sector':
+      rel_df = rel_df[[agg_level, f'Average {esg_x}', 'Average Monthly Return']].drop_duplicates()
     else:
-      rel_df = rel_df[[agg_level, esg_x, 'Average Return', 'Sector']]
+      rel_df = rel_df[[agg_level, f'Average {esg_x}', 'Average Monthly Return', 'GICS Sector']].drop_duplicates()
 
   with display_col:
-    st.subheader(f'{agg_level} Monthly Return vs. {esg_x}')
-    if agg_level == 'Sector':
-      # Boxplot
-      fig = px.box(
-          rel_df,
-          x=esg_x,
-          y='Average Return',
-          hover_data=[agg_level],
-          color='Sector',
-          width=800,)
+    st.subheader(f'Average Monthly Return vs. {esg_x} by {agg_level}')
 
-    else:
-      # Scatterplot
-      fig = px.scatter(
-          rel_df,
-          x=esg_x,
-          y='Average Return',
-          trendline='ols', # TODO: show only one trendline for all
-          trendline_scope='overall',
-          trendline_color_override='black',
-          hover_data=[agg_level],
-          color='Sector')
-      fig.update_layout(scattermode='group')
+    # Scatterplot
+    fig = px.scatter(
+        rel_df,
+        x=f'Average {esg_x}',
+        y='Average Monthly Return',
+        trendline='ols',
+        trendline_scope='overall', # TODO: show only one trendline for all
+        trendline_color_override='black',
+        hover_data=[agg_level],
+        color='GICS Sector',)
+    fig.update_traces(marker=dict(opacity=0.4))
+    fig.update_layout(scattermode='group')
 
-    if esg_x == 'MCSI ESG Rating':
-      fig.update_xaxes(
-          categoryorder='array',
-          categoryarray=['AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC', 'CC', 'CCC', 'D'])
-    
     st.plotly_chart(fig)
 
+  # Show desription below graph for wider columns
   with desc_col:
     st.subheader('Description')
     st.markdown('''TODO: This column will describe the graph.''')
@@ -229,17 +204,17 @@ with relationship_tab:
 
   
   # Display summary stats
-  st.subheader('Summary Statistics')
+  # st.subheader('Summary Statistics')
   # st.text(f'Number of Companies: {len(rel_df)}')
-  # st.dataframe(rel_df[[esg_x, 'Average Return']].describe())
+  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].describe())
   # st.text('Correlation')
-  # st.dataframe(rel_df[[esg_x, 'Average Return']].corr())
+  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].corr())
   # st.text('Covariance')
-  # st.dataframe(rel_df[[esg_x, 'Average Return']].cov())
+  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].cov())
   # st.text('Skewness')
-  # st.dataframe(rel_df[[esg_x, 'Average Return']].skew())
+  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].skew())
   # st.text('Kurtosis')
-  # st.dataframe(rel_df[[esg_x, 'Average Return']].kurtosis())
+  # st.dataframe(rel_df[[esg_x, 'Monthly Return']].kurtosis())
 
 # Predictive Model page
 with predictive_tab:
