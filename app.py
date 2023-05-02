@@ -48,11 +48,10 @@ st.title('ESG x Market Performance :earth_americas:')
 st.markdown('''Nathan Alakija, Nicole ElChaar, Mason Otley, Xiaozhe Zhang''')
 
 # Use three main tabs: Description, Relationship Model, and Predictive Model
-tab_list = ['Description','Report','ESG Metric Details','Relationship Model',
+tab_list = ['Description','ESG Metric Details','Relationship Model',
             'Predictive Model']
-description_tab,report_tab,correlation_tab,relationship_tab,predictive_tab = \
+description_tab,correlation_tab,relationship_tab,predictive_tab = \
     st.tabs(tab_list)
-    # st.tabs([s.center(25, '\u2001') for s in tab_list])
 
 # Load in final dataset
 final_df = pd.read_csv(input_path + 'final_dataset.csv')
@@ -238,10 +237,12 @@ with predictive_tab:
 
   # Get user input
   with select_col:
-    st.subheader('Select Industries')
+    st.subheader('Select Industry')
     # Create checkbox for each industry, removing nan
     industries = final_df['GICS Sector'].unique()
-    industries = industries[~pd.isna(industries)]
+    industries = industries[~pd.isna(industries)].tolist()
+    industries.append('All Industries')
+    industries.sort()
     selected_industry = st.selectbox(
         'Select Industry',
         industries)
@@ -255,7 +256,10 @@ with predictive_tab:
         step=1)
     
     # Filter to selected industries
-    pred_df = final_df[final_df['GICS Sector'] == selected_industry]
+    if selected_industry == 'All Industries':
+      pred_df = final_df
+    else:
+      pred_df = final_df[final_df['GICS Sector'] == selected_industry]
 
   # Display the graph
   with display_col:
@@ -266,13 +270,18 @@ with predictive_tab:
     # Create market weighted return by date, grouped by industry
     pred_df['Monthly Return'] = \
         pred_df['Monthly Return'] * pred_df['Market Cap']
-    pred_df['Monthly Return'] = \
-        pred_df.groupby([
-            'GICS Sector', 'Date'])['Monthly Return'].transform('sum') / \
-        pred_df.groupby(['GICS Sector', 'Date'])['Market Cap'].transform('sum')
+    if selected_industry == 'All Industries':
+      pred_df['Monthly Return'] = \
+          pred_df.groupby(['Date'])['Monthly Return'].transform('sum') / \
+          pred_df.groupby(['Date'])['Market Cap'].transform('sum')
+    else:
+      pred_df['Monthly Return'] = \
+          pred_df.groupby([
+              'GICS Sector', 'Date'])['Monthly Return'].transform('sum') / \
+          pred_df.groupby(['GICS Sector', 'Date'])['Market Cap'].transform('sum')
     
-    pred_df = pred_df[[
-        'Date', 'Monthly Return', 'GICS Sector']].drop_duplicates()
+    # Drop duplicates
+    pred_df = pred_df[['Date', 'Monthly Return']].drop_duplicates()
 
     # Smooth the data
     if smoothing:
@@ -284,7 +293,7 @@ with predictive_tab:
 
     # Pivot to long format
     pred_df_long = pred_df.melt(
-        id_vars=['Date', 'GICS Sector'],
+        id_vars=['Date'],
         value_vars=['Monthly Return', 'Logistic Regression Prediction'],
         var_name='Return Type',
         value_name='Return')
@@ -296,8 +305,8 @@ with predictive_tab:
           x='Date',
           y='Return',
           color='Return Type',
-          # line_dash='Return Type',
-          hover_data='GICS Sector')
+          # line_dash='Return Type'
+          )
       dist_fig.update_traces(opacity=0.8)
       
       st.plotly_chart(dist_fig, use_container_width=True, height=600)
