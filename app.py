@@ -48,7 +48,7 @@ st.title('ESG x Market Performance :earth_americas:')
 st.markdown('''Nathan Alakija, Nicole ElChaar, Mason Otley, Xiaozhe Zhang''')
 
 # Use three main tabs: Description, Relationship Model, and Predictive Model
-tab_list = ['Description','Report','ESG Score Details','Relationship Model',
+tab_list = ['Description','Report','ESG Metric Details','Relationship Model',
             'Predictive Model']
 description_tab,report_tab,correlation_tab,relationship_tab,predictive_tab = \
     st.tabs(tab_list)
@@ -86,29 +86,13 @@ other_cols = ['Date', 'Month', 'Year']
 
 # Description page
 with description_tab:
-  st.header('Description')
-  st.markdown('''
-  In this dashboard, we compare ESG scores from Bloomberg, S&P Global, and
-  Yahoo Finance with market performance.
+  # st.header('Description')
   
-  We also compare the ESG scores to each other to see if they are correlated.
-  The title of 
-  ''')
-
-  st.header('Usage')
-
-  st.markdown('''
-  Maybe replace this tab with readme.md?
-  ''')
-
-with report_tab:
-  st.header('Report')
-
-  # Load the report into markdown format
-  with open('report.md', 'r') as f:
+  # Load the README into markdown format
+  with open('README.md', 'r') as f:
     report = f.read()
 
-  # Expect ## to be max header found in report, add TOC
+  # Show only ## headers for TOC
   headers = [
       h.replace('## ', '') for h in report.split('\n') if h.startswith('## ')]
   toc = st.expander('Table of Contents')
@@ -117,7 +101,7 @@ with report_tab:
       st.markdown(f'- [{h}](#{h.lower().replace(" ", "-")})')
 
   # Add two header levels to the report and display it
-  report = report.replace('# ', '## ')
+  # report = report.replace('# ', '## ')
   st.markdown(report)
 
 # Relationship Model page
@@ -140,8 +124,8 @@ with relationship_tab:
          'GICS Sub-Industry'])
 
     # Select which ESG score for X axis
-    st.subheader('ESG Score')
-    esg_x = st.selectbox('Select ESG Score', esg_cols)
+    st.subheader('ESG Metric')
+    esg_x = st.selectbox('Select ESG Metric', esg_cols)
 
     # Select which dates to use for analysis
     st.subheader('Date Range')
@@ -215,8 +199,8 @@ with relationship_tab:
   with desc_col:
     st.subheader('Description')
     st.markdown('''
-    This model displays the relationship between ESG scores and monthly returns.
-    Scores and returns are aggregated by the average market-weighted value for
+    This model displays the relationship between ESG metrics and monthly returns.
+    Metrics and returns are aggregated by the average market-weighted value for
     each aggretation level, either by Ticker, GICS Industry, GICS Sub-Industry,
     GICS Industry Group, or GICS Sector.
 
@@ -230,7 +214,7 @@ with relationship_tab:
 
   with exp_col:
     # Explain each ESG score
-    st.subheader('Score Descriptions')
+    st.subheader('ESG Metric Descriptions')
     st.markdown('''
     
     ''')
@@ -350,10 +334,10 @@ with predictive_tab:
   
   # Show ESG score details
   with correlation_tab:
-    st.header('ESG Score Details')
+    st.header('ESG Metric Details')
     st.markdown('''
-    This page shows the relationship between each set of ESG scores. Because
-    the scores are calculated by different providers, the scores are not
+    This page shows the relationship between each set of ESG metrics. Because
+    the metrics are calculated by different providers, they are not
     directly comparable. However, we should still see a relationship between
     the scores as they are all measuring similar underlying factors.
     ''')
@@ -363,7 +347,11 @@ with predictive_tab:
     st.markdown('''
     In the heatmap, we see that Bloomberg scores are most distinct from one
     another, while S&P Global and Yahoo Finance scores are very similar to other
-    scores from the same source.  Yahoo Finance Governance and Yahoo Finance
+    scores from the same source.  As S&P Global creates rankings rather than
+    scores, we would expect a negative correlation between S&P Global ranks
+    and Yahoo Finance and Bloomberg scores.
+    
+    Of the inter-source pillars, Yahoo Finance Governance and Yahoo Finance
     Environmental scores are the most similar to one another with a correlation
     of 0.94.
 
@@ -402,12 +390,12 @@ with predictive_tab:
     dist_df = dist_df[dist_df['Source'] != 'Unknown']
     dist_df = dist_df.sort_values(by=['Source', 'ESG'])
 
-    st.subheader('Distribution of ESG Scores')
+    st.subheader('Distribution of ESG Metrics')
     st.markdown('''
-    Looking at the distribution of scores, we see that Bloomberg scores are more
+    Looking at the distribution of metrics, we see that Bloomberg scores are more
     concentrated around the mean than S&P Global and Yahoo Finance scores.
-    We also see that S&P Global Scores have a fairly uniform distribution while
-    Yahoo Finance scores have bimodal distributions.
+    We see the uniform distribution of S&P Global rankings, as expected.
+    Yahoo Finance scores show a bimodal distributions.
     ''')
 
     with st.spinner('Updating plot...'):

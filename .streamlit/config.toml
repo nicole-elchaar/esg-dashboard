@@ -1,9 +1,12 @@
 [theme]
 base="light"
-primaryColor = '#0563bb'
+primaryColor = "#0563bb"
+
+[ui]
+hideTopBar = true
 
 # Primary accent for interactive elements
-# primaryColor = '#008080'
+# primaryColor = '#7792E3'
 
 # Background color for the main content area
 # backgroundColor = '#273346'
@@ -18,6 +21,3 @@ primaryColor = '#0563bb'
 # Accepted values (serif | sans serif | monospace) 
 # Default: "sans serif"
 # font = "monospace"
-
-[ui]
-hideTopBar = true
