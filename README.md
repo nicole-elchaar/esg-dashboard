@@ -4,19 +4,15 @@ TODO
 
 ## Usage
 
-Via anaconda, install requirements of *environment.yml* to a new environment.
+To run the app locally, install requirements of *requirements.txt* to a new environment.
 
 ```bash
-conda env create esg-dashboard -f environment.yml
-```
-
-Activate the environment with
-
-```bash
+conda create --name esg-dashboard
 conda activate esg-dashboard
+python -m pip install -r requirements.txt
 ```
 
-From the main directory, run the following from the main repository to start the app locally:
+From the main directory, run the following from the main repository to start the app:
 
 ```bash
 streamlit run app.py
