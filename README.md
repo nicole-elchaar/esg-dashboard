@@ -1,6 +1,10 @@
 # Description
 
-In this dashboard, we visualize the ESG scores and market performance of S&P 500 companies from 2015 to 2023.  The dashboard is deployed using Streamlit at [this link](https://nicole-elchaar-esg-dashboard-app-mpiwio.streamlit.app), and the source repo is available on Github [here](https://github.com/nicole-elchaar/esg-dashboard).
+In this dashboard, we visualize the ESG scores and market performance of S&P 500 companies from 2015 to 2023.
+
+**[🌟🌟View the Dashboard🌟🌟](https://nicole-elchaar-esg-dashboard-app-mpiwio.streamlit.app)**
+
+**[🌟🌟View the Github🌟🌟](https://github.com/nicole-elchaar/esg-dashboard)**
 
 ## Visualizations
 
@@ -44,4 +48,4 @@ streamlit run app.py
 
 # Credits
 
-Many thanks to [@donbowen](https://bowen.finance) for the guidance throughout!
+Many thanks to [@donbowen](https://bowen.finance) for the guidance!
