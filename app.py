@@ -215,17 +215,25 @@ with relationship_tab:
     # Explain each ESG score
     st.subheader('ESG Metric Descriptions')
     st.markdown('''
-    Due to a lack of standardization among ESG scorers, we decided to use ESG metrics 
-    from a variety of sources to avoid overly generous or critical scores.
-    We gathered ESG metrics from three sources: Bloomberg, Standard & Poors, and Yahoo Finance:
-    
-    Bloomberg
-    - The work of over 700 analysts researching corporate social responsibility reports
-    ensured that scores are comparable. More on the methodology of ESG scoring can be found
+    **Bloomberg**
+    - Covering 12,000 companies, or 88% of the global equity market, 
+    Bloomberg ESG scores analyze the corporate social responsibility reports to generate comparable metrics. 
+    Recent and detailed information about these scores was relatively difficult to find.
+    More on the methodology of ESG scoring can be found
     in Bloomberg's most recent [materiality assessment](https://data.bloomberglp.com/company/sites/28/2017/01/17_0419_Materiality-Assessment.pdf)
     
-    Standard & Poor's (S&P)
-    - 
+    **Standard & Poor's (S&P)**
+    - S&P uses a weighted model on all levels of their ESG analysis. 
+    The three dimensions of ESG are weighted based on controversies. 
+    Within each dimension, questions and criteria are weighted depending on industry-specific approaches.
+    About 1,000 data points are used for each of the 8,000 companies covered by S&P ESG scores.
+    [Learn more here.](https://www.spglobal.com/esg/solutions/data-intelligence-esg-scores)
+    
+    **Yahoo Finance**
+    - A two-dimensional framework is used to examine two factors of companies. 
+    First, how exposed is a company to industry-specific ESG risk factors?
+    Second, how well is the company doing at managing those ESG risks?
+    The total ESG score is a total of the scores given to each ESG dimension and is scored on a scale of 1-100.
     ''')
 
   with stat_col:
