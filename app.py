@@ -215,7 +215,17 @@ with relationship_tab:
     # Explain each ESG score
     st.subheader('ESG Metric Descriptions')
     st.markdown('''
+    Due to a lack of standardization among ESG scorers, we decided to use ESG metrics 
+    from a variety of sources to avoid overly generous or critical scores.
+    We gathered ESG metrics from three sources: Bloomberg, Standard & Poors, and Yahoo Finance:
     
+    Bloomberg
+    - The work of over 700 analysts researching corporate social responsibility reports
+    ensured that scores are comparable. More on the methodology of ESG scoring can be found
+    in Bloomberg's most recent [materiality assessment](https://data.bloomberglp.com/company/sites/28/2017/01/17_0419_Materiality-Assessment.pdf)
+    
+    Standard & Poor's (S&P)
+    - 
     ''')
 
   with stat_col:
