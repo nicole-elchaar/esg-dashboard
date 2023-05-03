@@ -81,7 +81,7 @@ fin_cols = ['Monthly Return', 'Price', 'Credit Risk Indicator', 'Beta', 'Alpha',
 company_cols = ['Ticker', 'GICS Sector', 'GICS Industry', 'GICS Industry Group',
                 'GICS Sub-Industry']
 other_cols = ['Date', 'Month', 'Year']
-# pred_cols = ['Monthly Return', 'Model 1 Prediction', ...]  # TODO
+pred_cols = ['Monthly Return', 'Lasso Model']  # TODO: Use, add more
 
 # Description page
 with description_tab:
@@ -270,31 +270,45 @@ with predictive_tab:
     # Create market weighted return by date, grouped by industry
     pred_df['Monthly Return'] = \
         pred_df['Monthly Return'] * pred_df['Market Cap']
+    pred_df['Lasso Model Return'] = \
+        pred_df['Lasso Model'] * pred_df['Market Cap']
     if selected_industry == 'All Industries':
       pred_df['Monthly Return'] = \
           pred_df.groupby(['Date'])['Monthly Return'].transform('sum') / \
+          pred_df.groupby(['Date'])['Market Cap'].transform('sum')
+      pred_df['Lasso Model Return'] = \
+          pred_df.groupby(['Date'])['Lasso Model Return'].transform('sum') / \
           pred_df.groupby(['Date'])['Market Cap'].transform('sum')
     else:
       pred_df['Monthly Return'] = \
           pred_df.groupby([
               'GICS Sector', 'Date'])['Monthly Return'].transform('sum') / \
           pred_df.groupby(['GICS Sector', 'Date'])['Market Cap'].transform('sum')
+      pred_df['Lasso Model Return'] = \
+          pred_df.groupby([
+              'GICS Sector', 'Date'])['Lasso Model Return'].transform('sum') / \
+          pred_df.groupby(['GICS Sector', 'Date'])['Market Cap'].transform('sum')
     
     # Drop duplicates
-    pred_df = pred_df[['Date', 'Monthly Return']].drop_duplicates()
+    pred_df = pred_df[['Date', 'Monthly Return','Lasso Model Return']].drop_duplicates()
 
     # Smooth the data
     if smoothing:
       pred_df['Monthly Return'] = \
           pred_df['Monthly Return'].rolling(smoothing).mean()
-
-    # TODO simulating predictive model while waiting
-    pred_df['Logistic Regression Prediction'] = pred_df['Monthly Return'] * 0.5
+      
+    # Multiply by 100 for percentage
+    pred_df['Lasso Model Return'] = pred_df['Lasso Model Return'] * 100
+    # Winsorize
+    top_5 = pred_df['Lasso Model Return'].quantile(0.99)
+    bottom_5 = pred_df['Lasso Model Return'].quantile(0.01)
+    pred_df['Lasso Model Return'] = \
+        pred_df['Lasso Model Return'].clip(bottom_5, top_5)    
 
     # Pivot to long format
     pred_df_long = pred_df.melt(
         id_vars=['Date'],
-        value_vars=['Monthly Return', 'Logistic Regression Prediction'],
+        value_vars=['Monthly Return', 'Lasso Model Return'],
         var_name='Return Type',
         value_name='Return')
 
@@ -330,8 +344,10 @@ with predictive_tab:
   # Show main descriptions under the graph
   with exp_col:
     st.subheader('Model Descriptions')
+    # TODO how sad
     st.markdown('''
-    TODO: This model...
+    The simple Lasso model uses lagging ESG scores and economic indicators to
+    predict the next month's return.
     ''')
 
   # Show summary stats under the graph

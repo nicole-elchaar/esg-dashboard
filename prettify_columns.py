@@ -2,7 +2,7 @@
 import pandas as pd
 
 # Load in final dataset
-final_df = pd.read_csv('inputs/Final_Merged_Analyzing_Data.csv')
+final_df = pd.read_csv('inputs/Final_Merged_Analyzing_Data_Prediction.csv')
 
 # Create map for named columns to display names
 col_to_display_esg = {

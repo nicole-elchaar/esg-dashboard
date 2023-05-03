@@ -12,7 +12,7 @@ In our relationship model, we display average market-weighted monthly returns by
 
 ### The Predictive Model
 
-In our predictive model, we see if ESG scores have any impact on performance.  We use a **TODO** model to predict the monthly returns of a company based on its ESG scores and selected financial metrics, comparing predicted returns from our model against actual returns.
+In our predictive model, we see if ESG scores have any impact on performance.  We use a Lasso model to predict the monthly returns of a company based on its ESG scores and selected financial metrics, comparing predicted returns from our model against actual returns.
 
 The coefficients of each model are shown below the plot.
 
@@ -44,4 +44,4 @@ streamlit run app.py
 
 # Credits
 
-Many thanks to [@]() **TODO** for the guidance and feedback throughout the project.
+Many thanks to [@donbowen](https://bowen.finance) for the guidance throughout!
