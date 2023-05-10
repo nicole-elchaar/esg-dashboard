@@ -1,8 +1,9 @@
 # Usage:
 # streamlit run app.py
 
-from utils import *
 import streamlit as st
+from utils import get_final_df, show_description_tab, show_correlation_tab, \
+    show_relationship_tab, show_predictive_tab
 
 # Make page content wider
 st.set_page_config(
