@@ -1,7 +1,6 @@
 # Cached utils for the dashboard
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 # Set up list of financial, ESG, and company info columns

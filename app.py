@@ -1,17 +1,8 @@
-import matplotlib.pyplot as plt
-import os
-import pandas as pd
-import plotly.express as px
-import plotly.figure_factory as ff
-import plotly.graph_objects as go
-import seaborn as sns
-import streamlit as st
-from plotly.subplots import make_subplots
-
-from utils import *
-
 # Usage:
 # streamlit run app.py
+
+from utils import *
+import streamlit as st
 
 # Make page content wider
 st.set_page_config(
